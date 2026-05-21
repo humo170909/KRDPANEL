@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KRD Importaciones S.A.C — Panel de Gestión</title>
+
+  <!-- Favicon — evita el 404 automático de /favicon.ico -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236c63ff'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700' font-size='15'%3EKRD%3C/text%3E%3C/svg%3E" />
+
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src  'self';
+
+    script-src   'self'
+                 https://cdn.jsdelivr.net
+                 https://cdnjs.cloudflare.com;
+
+    style-src    'self' 'unsafe-inline'
+                 https://fonts.googleapis.com;
+
+    font-src     'self'
+                 https://fonts.gstatic.com;
+
+    img-src      'self' data: blob:;
+
+    connect-src  'self'
+                 https://*.supabase.co
+                 wss://*.supabase.co
+                 https://cdn.jsdelivr.net
+                 https://api.callmebot.com
+                 https://api.ipify.org
+                 https://fonts.googleapis.com
+                 https://fonts.gstatic.com;
+
+    worker-src   blob: 'self';
+
+    base-uri     'self';
+    form-action  'self';
+  " />
+
+  <!-- Fuentes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!--
+    Dependencias globales vía CDN.
+    crossorigin="anonymous" es obligatorio cuando la CSP está activa.
+
+    NOTA SRI: Los hashes integrity DEBEN calcularse contra el archivo
+    real descargado. Para obtenerlos:
+      openssl dgst -sha512 -binary archivo.js | openssl base64 -A
+    o usa https://www.srihash.org/ con la URL exacta del CDN.
+    No se incluyen aquí para evitar bloqueos por hash incorrecto.
+    En producción: calcúlalos y agrégalos.
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+          crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+          crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
+          crossorigin="anonymous"></script>
+
+  <!-- Punto de entrada único — ESM, diferido automáticamente -->
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+
+  <!-- ================================================
+       PANTALLA DE LOGIN
+  ================================================ -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-badge">
+          <span class="logo-k">K</span><span class="logo-rd">RD</span>
+        </div>
+        <div class="login-brand-text">
+          <span class="login-brand-name">KRD Importaciones S.A.C</span>
+          <span class="login-brand-sub">Panel de Gestión Empresarial — Creado por Raul y Estefany</span>
+        </div>
+      </div>
+
+      <div class="login-divider"></div>
+
+      <form id="formLogin" novalidate>
+        <div class="form-group">
+          <label for="loginUser">Usuario</label>
+          <div class="input-icon-wrap">
+            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" id="loginUser" placeholder="Ingresa tu usuario" autocomplete="username" />
+          </div>
+          <span class="error-msg" id="err-loginUser"></span>
+        </div>
+
+        <div class="form-group" style="margin-top:16px">
+          <label for="loginPass">Contraseña</label>
+          <div class="input-icon-wrap">
+            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" />
+            <button type="button" class="toggle-pass" id="togglePass" title="Mostrar/ocultar contraseña">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <span class="error-msg" id="err-loginPass"></span>
+        </div>
+
+        <div class="login-error-box" id="loginErrorBox"></div>
+
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top:24px">
+          Iniciar sesión
+        </button>
+      </form>
+
+      <p class="login-footer">Sistema de uso interno — KRD Importaciones</p>
+    </div>
+  </div>
+
+  <!-- ================================================
+       APP PRINCIPAL
+  ================================================ -->
+  <div id="appScreen" class="app-screen hidden">
+
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="brand">
+          <div class="brand-logo">
+            <span class="logo-k">K</span><span class="logo-rd">RD</span>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">KRD Importaciones S.A.C</span>
+            <span class="brand-tagline">Panel de Gestión de Administración</span>
+          </div>
+        </div>
+
+        <nav class="tab-nav">
+          <button class="tab-btn" data-tab="asistencia">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Asistencia
+          </button>
+          <button class="tab-btn" data-tab="ventas">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Ventas &amp; Ganancias
+          </button>
+          <button class="tab-btn" data-tab="observaciones">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Observaciones
+            <span class="obs-badge hidden" id="obsBadge">0</span>
+          </button>
+          <button class="tab-btn tab-admin-only hidden" data-tab="auditoria">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Auditoría
+          </button>
+          <button class="tab-btn tab-admin-only hidden" data-tab="descargas">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="1" x2="12" y2="15"/></svg>
+            Descargas
+          </button>
+          <button class="tab-btn tab-admin-only hidden" data-tab="usuarios">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/></svg>
+            Usuarios
+          </button>
+          <button class="tab-btn tab-rrhh-only hidden" data-tab="rrhh">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+            RRHH
+          </button>
+          <button class="tab-btn tab-admin-only hidden" data-tab="seguridad">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Seguridad
+          </button>
+        </nav>
+
+        <div class="header-right">
+          <div class="user-badge" id="userBadge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span id="userBadgeName"></span>
+            <span class="role-tag" id="userRoleTag"></span>
+          </div>
+          <div class="header-date" id="headerDate"></div>
+          <div class="header-date" id="headerClock" style="font-variant-numeric:tabular-nums;min-width:5rem;text-align:right;"></div>
+          <button class="btn btn-ghost btn-sm" id="btnCambiarPass" title="Cambiar contraseña"
+            style="padding:6px 8px;min-width:unset">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </button>
+          <button class="btn btn-ghost btn-sm theme-toggle" id="btnThemeToggle" title="Cambiar tema"
+            style="padding:6px 8px;min-width:unset">
+            <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          </button>
+          <button class="btn-logout" id="btnLogout" title="Cerrar sesión">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Salir
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+
+      <!-- ══════════ ASISTENCIA ══════════ -->
+      <section id="tab-asistencia" class="tab-panel">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Control de Asistencias</h2>
+            <p class="section-sub">Registro de entradas y salidas del personal</p>
+          </div>
+          <div class="admin-only hidden" id="btnClearAsistWrap">
+            <button class="btn btn-danger btn-sm" id="clearAsistencia">✕ Limpiar registros del día</button>
+          </div>
+        </div>
+
+        <div class="mes-selector-bar">
+          <label for="mesSelectorAsistencia">Mes activo:</label>
+          <select id="mesSelectorAsistencia"></select>
+          <button class="btn btn-sm btn-ghost admin-only hidden" id="btnNuevoMesAsist">+ Nuevo mes</button>
+        </div>
+
+        <div class="card card--asistencia" id="cardFormAsistencia">
+
+          <!-- VISTA COLABORADOR -->
+          <div id="asistColabView" class="hidden colab-only">
+            <div class="colab-header">
+              <div class="colab-header-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div class="colab-header-info">
+                <div class="colab-header-title" id="colabHeaderNombre">Mi Asistencia</div>
+                <div class="colab-header-sub" id="colabHeaderFecha"></div>
+              </div>
+            </div>
+            <div class="colab-asist-status" id="colabAsistStatus"></div>
+            <div id="colabBotonesWrap" class="colab-btns-wrap">
+              <button class="btn btn-colab-entrada" id="btnColabEntrada">
+                <span class="btn-colab-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                </span>
+                <span class="btn-colab-text">
+                  <span class="btn-colab-label">REGISTRAR ENTRADA</span>
+                  <span class="btn-colab-hint">Marca el inicio de tu jornada</span>
+                </span>
+              </button>
+              <button class="btn btn-colab-salida" id="btnColabSalida" disabled>
+                <span class="btn-colab-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </span>
+                <span class="btn-colab-text">
+                  <span class="btn-colab-label">REGISTRAR SALIDA</span>
+                  <span class="btn-colab-hint">Marca el fin de tu jornada</span>
+                </span>
+              </button>
+            </div>
+            <div class="colab-help-note">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              Se te pedirá confirmar la hora antes de guardar. Puedes ajustarla si es necesario.
+            </div>
+          </div>
+
+          <!-- VISTA ADMIN -->
+          <div id="asistAdminView" class="hidden admin-only">
+
+            <!-- Panel header -->
+            <div class="asist-admin-header">
+              <div class="asist-admin-header-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="asist-admin-header-info">
+                <div class="asist-admin-header-title">REGISTRO DE ASISTENCIA</div>
+                <div class="asist-admin-header-sub">Selecciona la acción y completa los datos del trabajador</div>
+              </div>
+              <div class="asist-live-badge">
+                <span class="asist-live-dot"></span>EN VIVO
+              </div>
+            </div>
+
+            <!-- Selector Entrada / Salida -->
+            <div class="asist-accion-selector">
+              <label class="accion-card" id="labelAccionEntrada">
+                <input type="radio" name="accionAsistencia" value="entrada" checked />
+                <span class="accion-card-icon accion-card-icon--entrada">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                </span>
+                <span class="accion-card-text">
+                  <span class="accion-card-title">Registrar Entrada</span>
+                  <span class="accion-card-sub">Inicio de jornada laboral</span>
+                </span>
+                <span class="accion-card-pill accion-pill--entrada">ENTRADA</span>
+              </label>
+              <label class="accion-card" id="labelAccionSalida">
+                <input type="radio" name="accionAsistencia" value="salida" />
+                <span class="accion-card-icon accion-card-icon--salida">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </span>
+                <span class="accion-card-text">
+                  <span class="accion-card-title">Registrar Salida</span>
+                  <span class="accion-card-sub">Fin de jornada laboral</span>
+                </span>
+                <span class="accion-card-pill accion-pill--salida">SALIDA</span>
+              </label>
+            </div>
+
+            <!-- Indicador de modo activo -->
+            <div class="asist-mode-indicator mode-entrada" id="asistModeIndicator">
+              <div class="asist-mode-bar" id="asistModeBar"></div>
+              <span class="asist-mode-label" id="asistModeLabel">▶  MODO ENTRADA ACTIVO</span>
+            </div>
+
+            <!-- Formulario -->
+            <form id="formAsistencia" class="form-grid-asist" novalidate>
+              <div class="form-group" id="groupFechaAsistencia">
+                <label for="fechaAsistencia">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Fecha del registro
+                </label>
+                <input type="date" id="fechaAsistencia" />
+              </div>
+              <div class="form-group" id="groupNombreTrabajador">
+                <label for="nombreTrabajador">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  Nombre del trabajador
+                </label>
+                <input type="text" id="nombreTrabajador" placeholder="Ej: Juan Pérez" autocomplete="off" />
+                <span class="error-msg" id="err-nombre"></span>
+              </div>
+              <div class="form-group" id="groupHoraEntrada">
+                <label for="horaEntrada">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Hora de entrada
+                </label>
+                <input type="time" id="horaEntrada" />
+                <span class="error-msg" id="err-entrada"></span>
+              </div>
+              <div class="form-group" id="groupHoraSalida">
+                <label for="horaSalida">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Hora de salida <span style="color:var(--text-muted);font-weight:400">(opcional)</span>
+                </label>
+                <input type="time" id="horaSalida" />
+                <span class="error-msg" id="err-salida"></span>
+              </div>
+              <div class="form-group" id="groupSelectSalida" style="display:none">
+                <label for="selectTrabajadorSalida">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  Seleccionar trabajador
+                </label>
+                <select id="selectTrabajadorSalida">
+                  <option value="">— Selecciona un trabajador —</option>
+                </select>
+                <span class="error-msg" id="err-select"></span>
+              </div>
+              <div class="form-group form-group--action">
+                <button type="submit" class="asist-submit-btn" id="btnRegistrarAsistencia">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span id="asistBtnLabel">REGISTRAR ENTRADA</span>
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+
+        <!-- Gráfico asistencia + Top colaboradores (solo admin) -->
+        <div class="asistencia-analytics-grid admin-only hidden" id="gridGraficoAsistencia">
+          <div class="asist-grafico-card">
+            <div class="asist-card-label">📊 ASISTENCIAS VS TARDANZAS — POR SEMANA</div>
+            <div id="graficoAsistenciaContenedor">
+              <div style="text-align:center;padding:2.5rem 1rem;color:var(--text-muted)">
+                <div style="font-size:2rem">📊</div>
+                <p style="font-size:0.85rem;margin-top:0.5rem">Cargando gráfico...</p>
+              </div>
+            </div>
+          </div>
+          <div class="asist-top-card">
+            <div class="asist-card-label">🏆 PUNTUALIDAD Y TARDANZAS</div>
+            <div id="topColabContenedor">
+              <div style="text-align:center;padding:2rem 1rem;color:var(--text-muted)">
+                <div style="font-size:1.5rem">👥</div>
+                <p style="font-size:0.82rem;margin-top:0.5rem">Cargando...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de asistencia -->
+        <div class="card card--table" id="cardTablaAsistencia">
+          <div class="card-label">REGISTROS DEL DÍA</div>
+          <div id="filtrosAsistenciaWrap"></div>
+          <div class="table-meta" id="totalAsistencias">0 trabajadores registrados</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Trabajador</th>
+                  <th>Fecha</th>
+                  <th>Entrada</th>
+                  <th>Salida</th>
+                  <th>Horas</th>
+                  <th>Estado</th>
+                  <th>Justificación</th>
+                  <th>Registrado por</th>
+                  <th class="admin-only hidden"></th>
+                </tr>
+              </thead>
+              <tbody id="bodyAsistencia"></tbody>
+            </table>
+            <div class="empty-state" id="emptyAsistencia">
+              <div class="empty-icon">👥</div>
+              <p>Sin registros hoy.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════ VENTAS ══════════ -->
+      <section id="tab-ventas" class="tab-panel">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Ventas y Ganancias</h2>
+            <p class="section-sub">Resumen diario por método de pago y control mensual</p>
+          </div>
+        </div>
+
+        <div class="mes-selector-bar">
+          <label for="mesSelector">Mes activo:</label>
+          <select id="mesSelector"></select>
+          <button class="btn btn-sm btn-ghost admin-only hidden" id="btnNuevoMes">+ Nuevo mes</button>
+          <button class="btn btn-sm btn-danger admin-only hidden" id="clearDia">✕ Limpiar mes</button>
+          <span class="mes-asist-badge admin-only hidden" id="labelMesBadge"></span>
+        </div>
+
+        <!-- Formulario ventas -->
+        <div class="card" id="cardFormVentas">
+          <div class="card-label">REGISTRAR DÍA</div>
+          <form id="formVentas" class="form-grid-ventas" novalidate>
+            <div class="ventas-row-top">
+              <div class="form-group">
+                <label for="fechaVenta">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Fecha
+                </label>
+                <input type="date" id="fechaVenta" />
+                <span class="error-msg" id="err-fecha"></span>
+              </div>
+              <div class="form-group">
+                <label for="ventaEfectivo">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  Efectivo (S/)
+                </label>
+                <input type="number" id="ventaEfectivo" placeholder="0.00" min="0" step="0.01" />
+                <span class="error-msg" id="err-efectivo"></span>
+              </div>
+              <div class="form-group">
+                <label for="ventaYape"><span class="metodo-badge metodo-yape">YAPE</span></label>
+                <input type="number" id="ventaYape" placeholder="0.00" min="0" step="0.01" />
+                <span class="error-msg" id="err-yape"></span>
+              </div>
+              <div class="form-group">
+                <label for="ventaPlin"><span class="metodo-badge metodo-plin">PLIN</span></label>
+                <input type="number" id="ventaPlin" placeholder="0.00" min="0" step="0.01" />
+                <span class="error-msg" id="err-plin"></span>
+              </div>
+              <div class="form-group">
+                <label for="ventaTransf">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  Gastos (S/)
+                </label>
+                <input type="number" id="ventaTransf" placeholder="0.00" min="0" step="0.01" />
+                <span class="error-msg" id="err-transf"></span>
+              </div>
+              <div class="form-group">
+                <label for="gananciaDelDia">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+                  Ganancia (S/)
+                </label>
+                <input type="number" id="gananciaDelDia" placeholder="0.00" min="0" step="0.01" />
+                <span class="error-msg" id="err-ganancia"></span>
+              </div>
+            </div>
+            <!-- Live preview -->
+            <div class="live-preview">
+              <div class="preview-item">
+                <span class="preview-label">Efectivo</span>
+                <span class="preview-value" id="previewEfectivo">S/ 0.00</span>
+              </div>
+              <div class="preview-item">
+                <span class="preview-label">Yape</span>
+                <span class="preview-value val-yape" id="previewYapeVal">S/ 0.00</span>
+              </div>
+              <div class="preview-item">
+                <span class="preview-label">Plin</span>
+                <span class="preview-value val-plin" id="previewPlinVal">S/ 0.00</span>
+              </div>
+              <div class="preview-item">
+                <span class="preview-label">Gastos</span>
+                <span class="preview-value val-transf" id="previewTransfVal">S/ 0.00</span>
+              </div>
+              <div class="preview-item">
+                <span class="preview-label">Total Bruto</span>
+                <span class="preview-value val-accent" id="previewTotalBruto">S/ 0.00</span>
+              </div>
+              <div class="preview-item">
+                <span class="preview-label">Total Neto</span>
+                <span class="preview-value val-accent" id="previewTotal">S/ 0.00</span>
+              </div>
+              <div class="preview-item">
+                <span class="preview-label">Ganancia</span>
+                <span class="preview-value" id="previewGanancia">S/ 0.00</span>
+              </div>
+              <div class="preview-item">
+                <span class="preview-label">Balance</span>
+                <span class="preview-value" id="previewBalance">S/ 0.00</span>
+              </div>
+              <div class="preview-item" style="margin-left:auto">
+                <button type="submit" class="btn btn-primary" style="margin-top:8px">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  Guardar día
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Gráfico + Meta (solo admin) -->
+        <div class="admin-only hidden" id="gridGraficoMeta"
+          style="display:grid;grid-template-columns:1fr 280px;gap:1rem;margin-bottom:1.25rem">
+          <div class="card" style="padding:1.25rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+              <div>
+                <div style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);letter-spacing:0.05em;margin-bottom:2px">📈 TENDENCIA DE VENTAS</div>
+                <div style="font-size:0.74rem;color:var(--text-muted)">Ventas netas diarias del mes</div>
+              </div>
+            </div>
+            <div id="graficoVentasContenedor">
+              <div style="text-align:center;padding:3rem 1rem;color:var(--text-muted)">
+                <div style="font-size:2rem">📊</div>
+                <p style="font-size:0.85rem;margin-top:0.5rem">Cargando gráfico...</p>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="padding:1.25rem">
+            <div id="seccionMetaVentas">
+              <div style="text-align:center;padding:2rem 1rem;color:var(--text-muted)">
+                <div style="font-size:2rem">🎯</div>
+                <p style="font-size:0.85rem;margin-top:0.5rem">Cargando meta...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla ventas (solo admin) -->
+        <div class="card card--table admin-only hidden" id="cardTablaVentas">
+          <div class="card-label" id="labelMesActual">DÍAS REGISTRADOS</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>Fecha</th>
+                  <th>Efectivo</th><th>Yape</th><th>Plin</th>
+                  <th>Gastos</th><th>Total Bruto</th><th>Total Neto</th>
+                  <th>Ganancia</th><th>Balance</th><th>Margen</th>
+                  <th>Registrado por</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="bodyVentas"></tbody>
+            </table>
+            <div class="empty-state" id="emptyVentas">
+              <div class="empty-icon">📊</div>
+              <p>Sin registros este mes.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel quincenas — solo admin -->
+        <div id="panelQuincenas" class="admin-only">
+          <div id="panelQuincenasContenido"></div>
+        </div>
+
+        <!-- Botón descargar Excel -->
+        <button id="btnDescargarAsistencia" class="btn btn-primary admin-only">
+          ⬇ Descargar Excel
+        </button>
+
+        <!-- Mensaje para colaboradores -->
+        <div class="card colab-only hidden" id="cardColabVentasMsg">
+          <div class="colab-asist-status colab-status--ok">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Tu registro del día ha sido guardado correctamente. El historial de ventas es visible solo para el administrador.
+          </div>
+        </div>
+
+        <!-- Tarjetas resumen mensual: SOLO admin -->
+        <div class="reporte-grid admin-only hidden" id="reporteGrid">
+          <div class="reporte-card reporte-card--efectivo">
+            <div class="reporte-icon-wrap"><span class="metodo-badge" style="background:#10b981;color:white;font-size:0.75rem">EFECTIVO</span></div>
+            <div class="reporte-label">Total Efectivo del mes</div>
+            <div class="reporte-value" id="reporteEfectivo">S/ 0.00</div>
+          </div>
+          <div class="reporte-card reporte-card--yape">
+            <div class="reporte-icon-wrap"><span class="metodo-badge metodo-yape" style="font-size:0.75rem">YAPE</span></div>
+            <div class="reporte-label">Total Yape del mes</div>
+            <div class="reporte-value" id="reporteYape">S/ 0.00</div>
+          </div>
+          <div class="reporte-card reporte-card--plin">
+            <div class="reporte-icon-wrap"><span class="metodo-badge metodo-plin" style="font-size:0.75rem">PLIN</span></div>
+            <div class="reporte-label">Total Plin del mes</div>
+            <div class="reporte-value" id="reportePlin">S/ 0.00</div>
+          </div>
+          <div class="reporte-card reporte-card--transf">
+            <div class="reporte-icon-wrap"><span class="metodo-badge" style="background:#ef4444;color:white;font-size:0.75rem">GASTOS</span></div>
+            <div class="reporte-label">Gastos totales</div>
+            <div class="reporte-value" id="reporteTransf">S/ 0.00</div>
+          </div>
+          <div class="reporte-card reporte-card--bruto">
+            <div class="reporte-icon-wrap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            <div class="reporte-label">Total bruto del mes</div>
+            <div class="reporte-value" id="reporteTotalBruto">S/ 0.00</div>
+          </div>
+          <div class="reporte-card reporte-card--ventas">
+            <div class="reporte-icon-wrap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            <div class="reporte-label">Total neto del mes</div>
+            <div class="reporte-value" id="reporteTotalVentas">S/ 0.00</div>
+          </div>
+          <div class="reporte-card reporte-card--costos">
+            <div class="reporte-icon-wrap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+            <div class="reporte-label">Ganancia realizada del mes</div>
+            <div class="reporte-value" id="reporteCostoTotal">S/ 0.00</div>
+          </div>
+          <div class="reporte-card reporte-card--ganancia">
+            <div class="reporte-icon-wrap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+            <div class="reporte-label">Balance restante del mes</div>
+            <div class="reporte-value" id="reporteGananciaTotal">S/ 0.00</div>
+          </div>
+          <div class="reporte-card reporte-card--dias">
+            <div class="reporte-icon-wrap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div class="reporte-label">Días registrados</div>
+            <div class="reporte-value" id="reporteDias">0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════ OBSERVACIONES ══════════ -->
+      <section id="tab-observaciones" class="tab-panel">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Observaciones de Mercadería</h2>
+            <p class="section-sub">Envía comentarios, alertas o sugerencias al administrador</p>
+          </div>
+          <div class="admin-only hidden">
+            <button class="btn btn-ghost btn-sm" id="btnMarcarTodasLeidas">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Marcar todas como leídas
+            </button>
+          </div>
+        </div>
+
+        <div class="card card--obs-form">
+          <div class="card-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:6px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            NUEVA OBSERVACIÓN
+          </div>
+
+          <form id="formObservacion" novalidate>
+            <div class="obs-form-inner">
+              <div class="form-group obs-form-textarea-wrap">
+                <label for="obsTexto">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Describe tu observación
+                </label>
+                <textarea
+                  id="obsTexto"
+                  placeholder="Ej: Falta mercadería en el pasillo 3, producto X tiene fecha vencida, hay un problema con el inventario de..."
+                  rows="4"
+                  maxlength="1000"
+                ></textarea>
+                <div class="obs-char-counter">
+                  <span class="error-msg" id="err-obs"></span>
+                  <span class="obs-count" id="obsCharCount">0 / 1000</span>
+                </div>
+              </div>
+
+              <div class="obs-form-actions">
+                <div class="obs-whatsapp-note">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.45 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.06 6.06l1.08-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  El Patron recibirá tu mensaje por WhatsApp automáticamente
+                </div>
+                <button type="submit" class="btn btn-primary" id="btnEnviarObs">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  Enviar Observación
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="card card--table">
+          <div class="card-label" id="obsTableLabel">HISTORIAL DE OBSERVACIONES</div>
+          <div id="filtrosObsWrap"></div>
+          <div class="table-meta" id="totalObservaciones">0 observaciones</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Fecha y hora</th>
+                  <th class="admin-only hidden">Colaborador</th>
+                  <th>Mensaje</th>
+                  <th>Estado</th>
+                  <th class="admin-only hidden">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="bodyObservaciones"></tbody>
+            </table>
+            <div class="empty-state" id="emptyObservaciones">
+              <div class="empty-icon">💬</div>
+              <p>No hay observaciones registradas aún.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════ AUDITORÍA (solo admin) ══════════ -->
+      <section id="tab-auditoria" class="tab-panel">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Registro de Auditoría</h2>
+            <p class="section-sub">Historial de todas las acciones realizadas en el sistema</p>
+          </div>
+          <button class="btn btn-danger btn-sm" id="clearAuditoria">✕ Limpiar historial</button>
+        </div>
+        <div class="card card--table">
+          <div class="card-label">HISTORIAL DE ACCIONES</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr><th>#</th><th>Fecha y hora</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Detalle</th><th>IP</th><th>Dispositivo</th></tr>
+              </thead>
+              <tbody id="bodyAuditoria"></tbody>
+            </table>
+            <div class="empty-state" id="emptyAuditoria">
+              <div class="empty-icon">🔍</div>
+              <p>Sin acciones registradas aún.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════ DESCARGAS (solo admin) ══════════ -->
+      <section id="tab-descargas" class="tab-panel">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Descargas</h2>
+            <p class="section-sub">Exporta tus reportes en Excel (.xlsx)</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">DESCARGAR REPORTES</div>
+          <div class="descargas-grid">
+            <div class="descarga-box">
+              <div class="descarga-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Datos de Ventas Mensuales
+              </div>
+              <p class="descarga-desc">Exporta todos los días registrados del mes seleccionado con totales y márgenes.</p>
+              <div>
+                <label for="selectMesVentasDescargas" style="display:block;margin-bottom:8px;font-size:0.75rem;color:var(--text-secondary);letter-spacing:0.1em;text-transform:uppercase;">Seleccionar mes:</label>
+                <select id="selectMesVentasDescargas" class="select-descarga"></select>
+              </div>
+              <button class="btn btn-primary btn-full" id="btnDescargarVentas">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="1" x2="12" y2="15"/></svg>
+                Descargar Ventas
+              </button>
+            </div>
+            <div class="descarga-box">
+              <div class="descarga-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Asistencias Mensuales
+              </div>
+              <p class="descarga-desc">Exporta todos los registros de asistencia del mes seleccionado con resumen por trabajador.</p>
+              <div>
+                <label for="selectMesAsistDescargas" style="display:block;margin-bottom:8px;font-size:0.75rem;color:var(--text-secondary);letter-spacing:0.1em;text-transform:uppercase;">Seleccionar mes:</label>
+                <select id="selectMesAsistDescargas" class="select-descarga"></select>
+              </div>
+              <button class="btn btn-primary btn-full" id="btnDescargarAsistencias">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="1" x2="12" y2="15"/></svg>
+                Descargar Asistencias
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════ USUARIOS (solo admin) ══════════ -->
+      <section id="tab-usuarios" class="tab-panel">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Gestión de Usuarios</h2>
+            <p class="section-sub">Crea, edita o desactiva colaboradores sin ir a Supabase</p>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnNuevoColaborador">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Nuevo colaborador
+          </button>
+        </div>
+
+        <!-- Tarjetas resumen -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.75rem;margin-bottom:1.25rem">
+          <div class="card" style="padding:1rem;text-align:center">
+            <div style="font-size:1.6rem;font-weight:700;color:var(--accent)" id="totalUsuariosCount">—</div>
+            <div style="font-size:0.74rem;color:var(--text-secondary);margin-top:2px">Total usuarios</div>
+          </div>
+          <div class="card" style="padding:1rem;text-align:center">
+            <div style="font-size:1.6rem;font-weight:700;color:#4ecb8d" id="totalActivosCount">—</div>
+            <div style="font-size:0.74rem;color:var(--text-secondary);margin-top:2px">Activos</div>
+          </div>
+          <div class="card" style="padding:1rem;text-align:center">
+            <div style="font-size:1.6rem;font-weight:700;color:#f05a6e" id="totalInactivosCount">—</div>
+            <div style="font-size:0.74rem;color:var(--text-secondary);margin-top:2px">Inactivos</div>
+          </div>
+          <div class="card" style="padding:1rem;text-align:center">
+            <div style="font-size:1.6rem;font-weight:700;color:#a48dff" id="totalAdminsCount">—</div>
+            <div style="font-size:0.74rem;color:var(--text-secondary);margin-top:2px">Administradores</div>
+          </div>
+        </div>
+
+        <div class="card card--table" id="cardTablaUsuarios">
+          <div class="card-label">COLABORADORES REGISTRADOS</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nombre</th>
+                  <th>Usuario</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th>Creado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="bodyUsuarios"></tbody>
+            </table>
+            <div class="empty-state" id="emptyUsuarios">
+              <div class="empty-icon">👥</div>
+              <p>No hay usuarios registrados.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════ RRHH (admin + rrhh) ══════════ -->
+      <section id="tab-rrhh" class="tab-panel">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Panel RRHH</h2>
+            <p class="section-sub">Vacaciones, permisos, licencias, tardanzas, sanciones y horas extra</p>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnNuevoEventoRRHH">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nuevo evento
+          </button>
+        </div>
+
+        <!-- Cards de resumen mensual -->
+        <div class="rrhh-resumen-grid">
+          <div class="card rrhh-stat-card">
+            <div class="rrhh-stat-icon" style="color:#4da6ff">🏖️</div>
+            <div class="rrhh-stat-num" style="color:#4da6ff" id="rrhh-count-vacacion">—</div>
+            <div class="rrhh-stat-label">Vacaciones</div>
+          </div>
+          <div class="card rrhh-stat-card">
+            <div class="rrhh-stat-icon" style="color:#a48dff">📋</div>
+            <div class="rrhh-stat-num" style="color:#a48dff" id="rrhh-count-permiso">—</div>
+            <div class="rrhh-stat-label">Permisos</div>
+          </div>
+          <div class="card rrhh-stat-card">
+            <div class="rrhh-stat-icon" style="color:#f05a6e">⏰</div>
+            <div class="rrhh-stat-num" style="color:#f05a6e" id="rrhh-count-tardanza">—</div>
+            <div class="rrhh-stat-label">Tardanzas</div>
+          </div>
+          <div class="card rrhh-stat-card">
+            <div class="rrhh-stat-icon" style="color:#4ecb8d">⚡</div>
+            <div class="rrhh-stat-num" style="color:#4ecb8d" id="rrhh-count-hextra">—</div>
+            <div class="rrhh-stat-label">Horas extra</div>
+          </div>
+          <div class="card rrhh-stat-card">
+            <div class="rrhh-stat-icon" style="color:#f59e0b">⏳</div>
+            <div class="rrhh-stat-num" style="color:#f59e0b" id="rrhh-count-pendientes">—</div>
+            <div class="rrhh-stat-label">Pendientes</div>
+          </div>
+          <div class="card rrhh-stat-card">
+            <div class="rrhh-stat-icon" style="color:#ef4444">⚠️</div>
+            <div class="rrhh-stat-num" style="color:#ef4444" id="rrhh-count-sanciones">—</div>
+            <div class="rrhh-stat-label">Sanciones</div>
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="rrhh-filtros-bar">
+          <select id="rrhhFiltroTipo" class="select-descarga">
+            <option value="">Todos los tipos</option>
+            <option value="vacacion">🏖️ Vacación</option>
+            <option value="permiso">📋 Permiso</option>
+            <option value="licencia">🏥 Licencia</option>
+            <option value="tardanza">⏰ Tardanza</option>
+            <option value="sancion">⚠️ Sanción</option>
+            <option value="horas_extra">⚡ Horas extra</option>
+            <option value="justificacion">📝 Justificación</option>
+          </select>
+          <select id="rrhhFiltroEstado" class="select-descarga">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="aprobado">Aprobado</option>
+            <option value="rechazado">Rechazado</option>
+            <option value="anulado">Anulado</option>
+          </select>
+          <input type="text" id="rrhhFiltroColab" placeholder="🔍 Buscar colaborador..."
+            style="padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-input);color:var(--text-primary);font-size:0.82rem;min-width:180px" />
+        </div>
+
+        <!-- Tabla de eventos RRHH -->
+        <div class="card card--table">
+          <div class="card-label">EVENTOS RRHH — MES ACTUAL</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Tipo</th>
+                  <th>Colaborador</th>
+                  <th>Fechas / Horas</th>
+                  <th>Descripción</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="bodyRRHH"></tbody>
+            </table>
+            <div class="empty-state" id="emptyRRHH">
+              <div class="empty-icon">📋</div>
+              <p>No hay eventos RRHH registrados.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sucursales / Geolocalización (solo admin) -->
+        <div class="admin-only hidden" style="margin-top:2.5rem">
+          <div class="section-header">
+            <div>
+              <h3 class="section-title" style="font-size:1rem">📍 Sucursales y Geolocalización</h3>
+              <p class="section-sub">Sedes registradas para validación de asistencia por GPS</p>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btnNuevaSucursal">+ Nueva sede</button>
+          </div>
+          <div class="card card--table">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>#</th><th>Nombre</th><th>Dirección</th><th>Coordenadas</th><th>Radio</th><th>Estado</th><th>Acciones</th></tr>
+                </thead>
+                <tbody id="bodySucursales"></tbody>
+              </table>
+              <div class="empty-state" id="emptySucursales">
+                <div class="empty-icon">📍</div>
+                <p>No hay sucursales configuradas.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════ SEGURIDAD — LOGS (solo admin) ══════════ -->
+      <section id="tab-seguridad" class="tab-panel">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Logs de Seguridad</h2>
+            <p class="section-sub">Accesos, intentos fallidos, bloqueos y actividad sospechosa</p>
+          </div>
+          <button class="btn btn-danger btn-sm" id="btnLimpiarLogs">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            Limpiar logs antiguos
+          </button>
+        </div>
+
+        <!-- Cards de resumen -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.25rem">
+          <div class="card" style="padding:1rem;text-align:center">
+            <div style="font-size:1.6rem;font-weight:700;color:var(--accent)" id="logs-count-total">—</div>
+            <div style="font-size:0.74rem;color:var(--text-secondary);margin-top:2px">Total registros</div>
+          </div>
+          <div class="card" style="padding:1rem;text-align:center">
+            <div style="font-size:1.6rem;font-weight:700;color:#4da6ff" id="logs-count-info">—</div>
+            <div style="font-size:0.74rem;color:var(--text-secondary);margin-top:2px">Info</div>
+          </div>
+          <div class="card" style="padding:1rem;text-align:center">
+            <div style="font-size:1.6rem;font-weight:700;color:#f59e0b" id="logs-count-warning">—</div>
+            <div style="font-size:0.74rem;color:var(--text-secondary);margin-top:2px">Advertencias</div>
+          </div>
+          <div class="card" style="padding:1rem;text-align:center">
+            <div style="font-size:1.6rem;font-weight:700;color:#f05a6e" id="logs-count-critical">—</div>
+            <div style="font-size:0.74rem;color:var(--text-secondary);margin-top:2px">Críticos</div>
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <div style="display:flex;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap">
+          <select id="logsFiltroNivel" class="select-descarga">
+            <option value="">Todos los niveles</option>
+            <option value="info">ℹ️ Info</option>
+            <option value="warning">⚠️ Warning</option>
+            <option value="critical">🚨 Critical</option>
+          </select>
+          <select id="logsFiltroTipo" class="select-descarga">
+            <option value="">Todos los tipos</option>
+            <option value="login_exitoso">Login exitoso</option>
+            <option value="login_fallido">Login fallido</option>
+            <option value="cuenta_bloqueada">Cuenta bloqueada</option>
+            <option value="login_bloqueado">Cuenta inactiva</option>
+            <option value="logout">Logout</option>
+            <option value="rrhh_nuevo">RRHH nuevo</option>
+            <option value="rrhh_aprobado">RRHH aprobado</option>
+            <option value="rrhh_rechazado">RRHH rechazado</option>
+          </select>
+        </div>
+
+        <!-- Tabla de logs -->
+        <div class="card card--table">
+          <div class="card-label">REGISTRO DE ACTIVIDAD Y SEGURIDAD</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Nivel</th>
+                  <th>Tipo</th>
+                  <th>Usuario</th>
+                  <th>IP</th>
+                  <th>Detalle</th>
+                  <th>Dispositivo</th>
+                </tr>
+              </thead>
+              <tbody id="bodyLogs"></tbody>
+            </table>
+            <div class="empty-state" id="emptyLogs">
+              <div class="empty-icon">🔒</div>
+              <p>No hay logs de seguridad registrados.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- ================================================
+       MODALES
+  ================================================ -->
+
+  <!-- MODAL — EVENTO RRHH -->
+  <div class="modal-overlay" id="modalRRHHOverlay">
+    <div class="modal" style="max-width:540px;width:95%">
+      <div class="modal-header">
+        <div class="modal-title" id="rrhhModalTitle">Nuevo evento RRHH</div>
+        <button class="modal-close" id="rrhhModalCerrar" title="Cerrar">✕</button>
+      </div>
+      <input type="hidden" id="rrhhEventoId" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:16px">
+        <div class="form-group" style="grid-column:1/-1">
+          <label for="rrhhColaborador">Colaborador</label>
+          <select id="rrhhColaborador">
+            <option value="">— Selecciona colaborador —</option>
+          </select>
+          <span class="error-msg" id="err-rrhh-colab"></span>
+        </div>
+        <div class="form-group">
+          <label for="rrhhTipo">Tipo de evento</label>
+          <select id="rrhhTipo">
+            <option value="vacacion">🏖️ Vacación</option>
+            <option value="permiso">📋 Permiso</option>
+            <option value="licencia">🏥 Licencia</option>
+            <option value="tardanza">⏰ Tardanza</option>
+            <option value="sancion">⚠️ Sanción</option>
+            <option value="horas_extra">⚡ Horas extra</option>
+            <option value="justificacion">📝 Justificación</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="rrhhEstado">Estado</label>
+          <select id="rrhhEstado">
+            <option value="pendiente">Pendiente</option>
+            <option value="aprobado">Aprobado</option>
+            <option value="rechazado">Rechazado</option>
+            <option value="anulado">Anulado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="rrhhFechaInicio">Fecha inicio</label>
+          <input type="date" id="rrhhFechaInicio" />
+          <span class="error-msg" id="err-rrhh-fecha"></span>
+        </div>
+        <div class="form-group" id="rrhhCampoFechaFin">
+          <label for="rrhhFechaFin">Fecha fin <span style="color:var(--text-muted)">(opcional)</span></label>
+          <input type="date" id="rrhhFechaFin" />
+        </div>
+        <div class="form-group hidden" id="rrhhCampoHoras">
+          <label for="rrhhHoras">Horas extra</label>
+          <input type="number" id="rrhhHoras" placeholder="Ej: 2.5" min="0.5" step="0.5" />
+          <span class="error-msg" id="err-rrhh-horas"></span>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label for="rrhhDescripcion">Descripción / Motivo</label>
+          <textarea id="rrhhDescripcion" rows="2" placeholder="Describe brevemente el motivo..."></textarea>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label for="rrhhNotas">Notas internas <span style="color:var(--text-muted)">(solo visible por admin)</span></label>
+          <textarea id="rrhhNotas" rows="2" placeholder="Notas adicionales para el expediente..."></textarea>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:1.25rem">
+        <button class="btn btn-ghost" id="rrhhModalCancelar">Cancelar</button>
+        <button class="btn btn-primary" id="rrhhGuardar">Guardar evento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — SUCURSAL / SEDE -->
+  <div class="modal-overlay" id="modalSucursalOverlay">
+    <div class="modal" style="max-width:460px;width:95%">
+      <div class="modal-header">
+        <div class="modal-title" id="sucursalModalTitle">Nueva sucursal</div>
+        <button class="modal-close" id="sucursalModalCerrar" title="Cerrar">✕</button>
+      </div>
+      <input type="hidden" id="sucursalId" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:16px">
+        <div class="form-group" style="grid-column:1/-1">
+          <label for="sucursalNombre">Nombre de la sede</label>
+          <input type="text" id="sucursalNombre" placeholder="Ej: Sede Central Lima" autocomplete="off" />
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label for="sucursalDir">Dirección</label>
+          <input type="text" id="sucursalDir" placeholder="Ej: Av. Principal 123, Lima" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label for="sucursalLat">Latitud GPS</label>
+          <input type="number" id="sucursalLat" placeholder="-12.0464" step="0.000001" />
+        </div>
+        <div class="form-group">
+          <label for="sucursalLng">Longitud GPS</label>
+          <input type="number" id="sucursalLng" placeholder="-77.0428" step="0.000001" />
+        </div>
+        <div class="form-group">
+          <label for="sucursalRadio">Radio permitido (metros)</label>
+          <input type="number" id="sucursalRadio" value="200" min="50" max="2000" />
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:0.6rem;padding-top:1.6rem">
+          <input type="checkbox" id="sucursalActiva" checked style="width:16px;height:16px;cursor:pointer" />
+          <label for="sucursalActiva" style="margin:0;cursor:pointer;font-size:0.88rem">Sucursal activa</label>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:1.25rem">
+        <button class="btn btn-ghost" id="sucursalModalCancelar">Cancelar</button>
+        <button class="btn btn-primary" id="sucursalGuardar">Guardar sede</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — NUEVO MES (Ventas) -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Crear nuevo mes</div>
+        <button class="modal-close" id="modalCerrar" title="Cerrar">✕</button>
+      </div>
+      <div class="form-group" style="margin-top:16px">
+        <label for="inputNuevoMes">Nombre del mes</label>
+        <input type="text" id="inputNuevoMes" placeholder="Ej: Enero 2025" autocomplete="off" />
+        <span class="error-msg" id="err-mes"></span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="modalCancelar">Cancelar</button>
+        <button class="btn btn-primary" id="modalConfirmar">Crear mes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — CONFIRMACIÓN CRÍTICA -->
+  <div class="modal-overlay" id="modalConfirmOverlay">
+    <div class="modal modal--confirm">
+      <div class="modal-icon-danger">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div class="modal-title" id="confirmTitle">¿Confirmar acción?</div>
+      <p class="modal-desc" id="confirmDesc">Esta acción no se puede deshacer.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="confirmCancelar">Cancelar</button>
+        <button class="btn btn-danger" id="confirmAceptar">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — GUARDAR -->
+  <div class="modal-overlay" id="modalGuardarOverlay">
+    <div class="modal modal--confirm">
+      <div class="modal-icon-success">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="modal-title">Confirmar registro</div>
+      <p class="modal-desc" id="guardarDesc">¿Deseas guardar estos datos?</p>
+      <div class="modal-preview-box" id="guardarPreviewBox"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="guardarCancelar">Revisar</button>
+        <button class="btn btn-primary" id="guardarAceptar">Sí, guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — REAUTENTICACIÓN ADMIN -->
+  <div class="modal-overlay" id="modalReauthOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Verificar identidad</div>
+        <button class="modal-close" id="reauthCerrar" title="Cerrar">✕</button>
+      </div>
+      <p class="modal-desc" style="margin-bottom:16px">Ingresa tu contraseña de administrador para exportar este reporte.</p>
+      <div class="form-group">
+        <label for="reauthPass">Contraseña</label>
+        <div class="input-icon-wrap">
+          <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="reauthPass" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <span class="error-msg" id="err-reauth"></span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="reauthCancelar">Cancelar</button>
+        <button class="btn btn-primary" id="reauthAceptar">Verificar y exportar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — HORA COLABORADOR -->
+  <div class="modal-overlay" id="modalColabHoraOverlay">
+    <div class="modal modal--colab-hora">
+      <div class="colab-modal-icon-wrap" id="colabModalIcon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      </div>
+      <div class="modal-title" id="colabModalTitle">Registrar entrada</div>
+      <p class="modal-desc" id="colabModalDesc">Confirma tu hora de entrada al trabajo.</p>
+      <div class="colab-modal-divider"></div>
+      <div class="colab-modal-hora-wrap">
+        <label class="colab-modal-hora-label" for="colabModalHora">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Hora de registro
+        </label>
+        <input type="time" id="colabModalHora" class="colab-modal-hora-input" />
+        <span class="error-msg" id="err-colab-modal-hora" style="text-align:center;display:block;margin-top:6px;"></span>
+        <p class="colab-modal-hora-hint">Puedes ajustar la hora si es necesario antes de confirmar.</p>
+      </div>
+      <div class="modal-actions colab-modal-actions">
+        <button class="btn btn-ghost" id="colabModalCancelar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Cancelar
+        </button>
+        <button class="btn btn-primary" id="colabModalConfirmar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Confirmar hora
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — JUSTIFICACIÓN DE TARDANZA -->
+  <div class="modal-overlay" id="modalTardanzaOverlay">
+    <div class="modal">
+      <div class="modal-title" id="tardanzaModalTitle">Justificación de tardanza</div>
+      <p class="modal-desc" id="tardanzaModalDesc">Por favor indica el motivo de tu llegada tarde.</p>
+      <div class="form-group" style="margin-top:16px">
+        <label for="tardanzaReasonInput">Motivo de tardanza</label>
+        <textarea id="tardanzaReasonInput" placeholder="Describe brevemente por qué llegaste tarde..."></textarea>
+        <span class="error-msg" id="err-tardanza-reason"></span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="tardanzaCancelar">Cancelar</button>
+        <button class="btn btn-primary" id="tardanzaAceptar">Guardar razón</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — CONFIRMACIÓN OBSERVACIÓN ENVIADA -->
+  <div class="modal-overlay" id="modalObsConfirmOverlay">
+    <div class="modal modal--confirm">
+      <div class="modal-icon-success">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.45 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.06 6.06l1.08-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </div>
+      <div class="modal-title">¡Observación enviada!</div>
+      <p class="modal-desc" id="obsConfirmDesc">Tu mensaje fue registrado y enviado al administrador por WhatsApp.</p>
+      <div class="modal-preview-box" id="obsConfirmPreview"></div>
+      <div class="modal-actions" style="justify-content:center">
+        <button class="btn btn-primary" id="obsConfirmOk">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — NUEVO MES DE ASISTENCIA -->
+  <div class="modal-overlay" id="modalAsistMesOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Crear mes de asistencia</div>
+        <button class="modal-close" id="modalAsistMesCerrar" title="Cerrar">✕</button>
+      </div>
+      <div class="form-group" style="margin-top:16px">
+        <label for="inputNuevoMesAsist">Nombre del mes</label>
+        <input type="text" id="inputNuevoMesAsist" placeholder="Ej: Enero 2025" autocomplete="off" />
+        <span class="error-msg" id="err-mes-asist"></span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="modalAsistMesCancelar">Cancelar</button>
+        <button class="btn btn-primary" id="modalAsistMesConfirmar">Crear mes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — ELIMINAR OBSERVACIÓN -->
+  <div class="modal-overlay" id="modalEliminarObsOverlay">
+    <div class="modal modal--confirm">
+      <div class="modal-icon-danger">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </div>
+      <div class="modal-title">¿Eliminar observación?</div>
+      <p class="modal-desc">Esta acción es permanente y no se puede deshacer.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="elimObsCancelar">Cancelar</button>
+        <button class="btn btn-danger" id="elimObsAceptar">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — CAMBIAR CONTRASEÑA -->
+  <div class="modal-overlay" id="modalCambiarPassOverlay">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-header">
+        <div class="modal-title">🔐 Cambiar contraseña</div>
+        <button class="modal-close" id="modalCambiarPassCerrar">✕</button>
+      </div>
+      <p class="modal-desc" style="margin-bottom:16px">
+        Por seguridad, ingresa tu contraseña actual antes de establecer una nueva.
+      </p>
+      <form id="formCambiarPass" novalidate>
+        <div class="form-group">
+          <label for="passActual">Contraseña actual</label>
+          <input type="password" id="passActual" placeholder="••••••••" autocomplete="current-password"/>
+          <span class="error-msg" id="err-pass-actual"></span>
+        </div>
+        <div class="form-group" style="margin-top:12px">
+          <label for="passNueva">Nueva contraseña</label>
+          <input type="password" id="passNueva" placeholder="Mínimo 6 caracteres" autocomplete="new-password"/>
+          <span class="error-msg" id="err-pass-nueva"></span>
+        </div>
+        <div class="form-group" style="margin-top:12px">
+          <label for="passConfirmar">Confirmar nueva contraseña</label>
+          <input type="password" id="passConfirmar" placeholder="Repite la nueva contraseña" autocomplete="new-password"/>
+          <span class="error-msg" id="err-pass-confirmar"></span>
+        </div>
+        <div class="modal-actions" style="margin-top:20px">
+          <button type="button" class="btn btn-ghost" id="modalCambiarPassCancelar">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btnGuardarPass">Guardar nueva contraseña</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL — GESTIÓN DE USUARIOS -->
+  <div class="modal-overlay" id="modalGestionUsuariosOverlay">
+    <div class="modal" style="max-width:440px">
+      <div class="modal-header">
+        <div class="modal-title" id="gestionUserTitle">➕ Nuevo colaborador</div>
+        <button class="modal-close" id="gestionUserCerrar" title="Cerrar">✕</button>
+      </div>
+      <input type="hidden" id="gestionUserId" />
+      <div class="gestion-form-grid">
+        <div class="form-group">
+          <label for="gestionUserNombre">Nombre completo</label>
+          <input type="text" id="gestionUserNombre" placeholder="Ej: María García" autocomplete="off" />
+          <span class="error-msg" id="err-gestion-nombre"></span>
+        </div>
+        <div class="form-group">
+          <label for="gestionUserUsuario">Nombre de usuario</label>
+          <input type="text" id="gestionUserUsuario" placeholder="Ej: maria" autocomplete="off" />
+          <span class="error-msg" id="err-gestion-usuario"></span>
+        </div>
+        <div class="form-group" id="gestionUserPassWrap">
+          <p style="font-size:0.76rem;color:var(--text-muted);background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;line-height:1.5">
+            🔐 Las contraseñas se gestionan desde el panel de Supabase Authentication.
+          </p>
+          <input type="hidden" id="gestionUserPass" />
+          <span class="error-msg" id="err-gestion-pass"></span>
+        </div>
+        <div class="form-group">
+          <label for="gestionUserRol">Rol</label>
+          <select id="gestionUserRol" style="width:100%;padding:9px 12px;
+            background:var(--bg-input);border:1px solid var(--border);
+            border-radius:var(--radius);color:var(--text-primary);
+            font-family:var(--font-body);font-size:0.9rem;outline:none;cursor:pointer">
+            <option value="colaborador">Colaborador</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:1.25rem">
+        <button class="btn btn-ghost" id="gestionUserCancelar">Cancelar</button>
+        <button class="btn btn-primary" id="gestionUserGuardar">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — EDITAR REGISTRO DE ASISTENCIA (solo admin) -->
+  <div class="modal-overlay" id="modalEditarAsistOverlay">
+    <div class="modal modal--editar-asist">
+      <div class="modal-header">
+        <div class="modal-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:6px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar Registro de Asistencia
+        </div>
+        <button class="modal-close" id="editarAsistCerrar" title="Cerrar">✕</button>
+      </div>
+
+      <div class="asist-edit-admin-badge">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        MODO EDICIÓN — SOLO ADMINISTRADOR
+      </div>
+
+      <input type="hidden" id="editarAsistId" />
+
+      <div class="asist-edit-grid">
+        <div class="form-group" style="grid-column: 1 / -1">
+          <label for="editarAsistNombre">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Nombre del trabajador
+          </label>
+          <input type="text" id="editarAsistNombre" placeholder="Nombre completo" autocomplete="off" />
+          <span class="error-msg" id="err-edit-nombre"></span>
+        </div>
+        <div class="form-group">
+          <label for="editarAsistFecha">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Fecha
+          </label>
+          <input type="date" id="editarAsistFecha" />
+          <span class="error-msg" id="err-edit-fecha"></span>
+        </div>
+        <div class="form-group">
+          <label for="editarAsistEstado">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Estado
+          </label>
+          <select id="editarAsistEstado">
+            <option value="Asistencia">✓ Asistencia</option>
+            <option value="Tardanza">⏰ Tardanza</option>
+            <option value="Falta">✗ Falta</option>
+            <option value="Justificado">📋 Justificado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="editarAsistEntrada">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Hora de entrada
+          </label>
+          <input type="time" id="editarAsistEntrada" />
+          <span class="error-msg" id="err-edit-entrada"></span>
+        </div>
+        <div class="form-group">
+          <label for="editarAsistSalida">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Hora de salida <span style="color:var(--text-muted);font-weight:400">(opcional)</span>
+          </label>
+          <input type="time" id="editarAsistSalida" />
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1">
+          <label for="editarAsistJustificacion">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>
+            Justificación / Observación <span style="color:var(--text-muted);font-weight:400">(opcional)</span>
+          </label>
+          <input type="text" id="editarAsistJustificacion" placeholder="Ej: Llegó tarde por problema de transporte" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="editarAsistCancelar">Cancelar</button>
+        <button class="btn btn-primary" id="editarAsistGuardar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Guardar cambios
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — META DE VENTAS -->
+  <div class="modal-overlay" id="modalMetaOverlay">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-header">
+        <div class="modal-title">🎯 Meta de ventas</div>
+        <button class="modal-close" id="modalMetaCerrar" title="Cerrar">✕</button>
+      </div>
+      <p class="modal-desc" style="margin-bottom:16px">
+        Define el objetivo de ventas netas para este mes. Se mostrará una barra de progreso.
+      </p>
+      <div class="form-group">
+        <label for="inputMetaVentas">Meta en soles (S/)</label>
+        <input type="number" id="inputMetaVentas" placeholder="Ej: 5000" min="1" step="0.01" autocomplete="off"/>
+        <span class="error-msg" id="err-meta-ventas"></span>
+      </div>
+      <div class="modal-actions" style="margin-top:1.25rem">
+        <button class="btn btn-ghost" id="modalMetaCancelar">Cancelar</button>
+        <button class="btn btn-primary" id="modalMetaConfirmar">Guardar meta</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
