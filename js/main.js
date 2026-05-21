@@ -6,6 +6,9 @@
 // ── UI inmediata ──
 import { initTheme }           from "./ui/theme.js";
 
+// ── Seguridad de sesión ──
+import { iniciarGuard, detenerGuard } from "./security/guard.js";
+
 // ── Core ──
 import { getSession, isAdmin, isRRHH, isSupervisor, touchSession, clearSession } from "./core/session.js";
 
@@ -113,6 +116,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     initLoginForm((s) => _inicializarApp(s));
   }
 
+  // El guard se detiene solo al hacer reload (logout voluntario).
+  // Registramos el hook aquí para limpieza explícita ante SPA.
+  document.getElementById("btnLogout")?.addEventListener("click", () => detenerGuard(), { once: true, capture: true });
+
   initLogout();
 });
 
@@ -203,6 +210,13 @@ async function _inicializarApp(session) {
       if (obsLabel) obsLabel.textContent = isAdmin() ? "TODAS LAS OBSERVACIONES" : "MIS OBSERVACIONES";
 
       setInterval(() => verificarAusencias(), 20 * 60 * 1000);
+
+      // ── Guard de sesión activa ────────────────────────────────
+      // Verifica cada 60 s en Supabase que la cuenta siga activa.
+      // Si el admin desactiva al usuario, lo expulsa automáticamente.
+      iniciarGuard((nombreUsuario) => {
+        _mostrarPantallaExpulsion(nombreUsuario);
+      });
     },
   });
 }
@@ -241,6 +255,124 @@ function _initIdleTimer() {
   };
   EVENTS.forEach((evt) => document.addEventListener(evt, handler, { passive: true }));
 }
+
+// ================================================================
+// PANTALLA DE EXPULSIÓN — cuenta desactivada por el admin
+// ================================================================
+
+function _mostrarPantallaExpulsion(nombreUsuario) {
+  // 1. Ocultar toda la app inmediatamente
+  document.getElementById("appScreen")?.classList.add("hidden");
+  document.getElementById("loginScreen")?.classList.add("hidden");
+
+  // 2. Eliminar pantalla previa si ya existía
+  document.getElementById("krd-expulsion-screen")?.remove();
+
+  // 3. Construir pantalla de expulsión
+  const wrap = document.createElement("div");
+  wrap.id = "krd-expulsion-screen";
+  wrap.style.cssText = [
+    "position:fixed", "inset:0", "z-index:99999",
+    "display:flex", "align-items:center", "justify-content:center",
+    "padding:24px",
+    "background:var(--bg-base,#04060e)",
+    "background-image:radial-gradient(ellipse 80% 65% at 10% 5%, rgba(240,90,110,0.12) 0%, transparent 55%), radial-gradient(ellipse 70% 55% at 90% 95%, rgba(149,117,255,0.10) 0%, transparent 55%)",
+  ].join(";");
+
+  wrap.innerHTML = `
+    <div style="
+      background: var(--bg-card-gradient, linear-gradient(145deg, #0c0f22 0%, #080a1e 100%));
+      border: 1px solid rgba(240,90,110,0.22);
+      border-radius: 24px;
+      padding: 44px 40px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow:
+        0 40px 100px rgba(0,0,0,0.75),
+        0 0 60px rgba(240,90,110,0.07),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+      position: relative;
+      overflow: hidden;
+    ">
+      <!-- Línea superior -->
+      <div style="
+        position:absolute; top:0; left:14px; right:14px; height:2px;
+        background:linear-gradient(90deg, transparent, rgba(240,90,110,0.85) 50%, transparent);
+        border-radius:999px;
+      "></div>
+
+      <!-- Ícono -->
+      <div style="
+        width:76px; height:76px;
+        background:rgba(240,90,110,0.11);
+        border:1px solid rgba(240,90,110,0.28);
+        border-radius:50%;
+        display:flex; align-items:center; justify-content:center;
+        margin:0 auto 22px;
+        font-size:2.2rem;
+      ">🔒</div>
+
+      <!-- Título -->
+      <h2 style="
+        font-family:'Rajdhani',sans-serif;
+        font-size:1.45rem; font-weight:700;
+        letter-spacing:0.06em; text-transform:uppercase;
+        color:#f5bacd;
+        margin-bottom:14px; line-height:1.2;
+      ">Cuenta desactivada</h2>
+
+      <!-- Mensaje -->
+      <p style="
+        color:var(--text-secondary,#7688aa);
+        font-size:0.9rem; line-height:1.7;
+        margin-bottom:10px;
+      ">
+        ${nombreUsuario
+          ? `Hola <strong style="color:var(--text-primary,#e8eeff)">${nombreUsuario}</strong>, tu`
+          : "Tu"
+        }
+        cuenta ha sido desactivada por el administrador.
+      </p>
+      <p style="
+        color:var(--text-muted,#5a6888);
+        font-size:0.8rem; line-height:1.55;
+        margin-bottom:30px;
+      ">
+        Si crees que esto es un error, comunícate<br>con el administrador del sistema.
+      </p>
+
+      <!-- Botón -->
+      <button id="btnExpulsionAceptar" style="
+        width:100%;
+        background:linear-gradient(135deg, #b060ff 0%, #9575ff 45%, #3db4ff 100%);
+        border:none; border-radius:9px; padding:13px 24px;
+        color:#fff;
+        font-family:'Rajdhani',sans-serif; font-weight:700;
+        font-size:0.95rem; letter-spacing:0.09em; text-transform:uppercase;
+        cursor:pointer;
+        box-shadow:0 4px 18px rgba(149,117,255,0.32);
+        transition:filter 0.18s ease, transform 0.18s ease;
+      ">Ir al inicio de sesión</button>
+    </div>`;
+
+  document.body.appendChild(wrap);
+
+  // Hover button
+  const btn = document.getElementById("btnExpulsionAceptar");
+  if (btn) {
+    btn.addEventListener("mouseover",  () => { btn.style.filter = "brightness(1.12)"; btn.style.transform = "translateY(-2px)"; });
+    btn.addEventListener("mouseout",   () => { btn.style.filter = ""; btn.style.transform = ""; });
+    btn.addEventListener("click", () => {
+      clearSession();
+      location.reload();
+    });
+  }
+}
+
+// ================================================================
+// MODAL ESTADO ENTRADA (helper existente)
+// ================================================================
 
 function _crearModalEstadoEntrada() {
   if (document.getElementById("modalEstadoEntradaOverlay")) return;

@@ -25,7 +25,17 @@ export async function actualizarPerfil(id, campos) {
 export async function getPorUsername(username) {
   return supabaseClient
     .from("perfiles")
-    .select("email, username, display_name, rol")
+    .select("id, email, username, display_name, rol, activo")
     .ilike("username", username)
     .single();
+}
+
+export async function getActivoPorUsername(username) {
+  const { data, error } = await supabaseClient
+    .from("perfiles")
+    .select("activo")
+    .ilike("username", username)
+    .maybeSingle();
+  if (error) return null;
+  return data?.activo ?? null;
 }

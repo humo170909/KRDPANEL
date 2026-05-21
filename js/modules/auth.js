@@ -41,13 +41,21 @@ export async function mostrarApp(session, callbacks = {}) {
 
   const roleTag = document.getElementById("userRoleTag");
   const roleLabels = {
-    admin:       "Admin",
+    admin:       "ADMINISTRADOR",
     rrhh:        "RRHH",
-    supervisor:  "Supervisor",
-    colaborador: "Colaborador",
+    supervisor:  "SUPERVISOR",
+    colaborador: "COLABORADOR",
+    employee:    "COLABORADOR",
   };
-  roleTag.textContent = roleLabels[session.role] || session.role;
-  roleTag.className = `role-tag role-${session.role || "colaborador"}`;
+  const roleClasses = {
+    admin:       "admin",
+    rrhh:        "rrhh",
+    supervisor:  "supervisor",
+    colaborador: "colaborador",
+    employee:    "colaborador",
+  };
+  roleTag.textContent = roleLabels[session.role] || session.role.toUpperCase();
+  roleTag.className = `role-tag role-${roleClasses[session.role] || session.role}`;
 
   // ── Visibilidad por rol ────────────────────────────────────────
   // admin-only: solo para rol "admin"

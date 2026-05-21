@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KRD Importaciones S.A.C — Panel de Gestión</title>
 
-  <!-- Favicon — evita el 404 automático de /favicon.ico -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236c63ff'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700' font-size='15'%3EKRD%3C/text%3E%3C/svg%3E" />
 
   <meta http-equiv="Content-Security-Policy" content="
@@ -46,18 +45,7 @@
   <!-- Estilos -->
   <link rel="stylesheet" href="css/styles.css" />
 
-  <!--
-    Dependencias globales vía CDN.
-    crossorigin="anonymous" es obligatorio cuando la CSP está activa.
-
-    NOTA SRI: Los hashes integrity DEBEN calcularse contra el archivo
-    real descargado. Para obtenerlos:
-      openssl dgst -sha512 -binary archivo.js | openssl base64 -A
-    o usa https://www.srihash.org/ con la URL exacta del CDN.
-    No se incluyen aquí para evitar bloqueos por hash incorrecto.
-    En producción: calcúlalos y agrégalos.
-  -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
           crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
           crossorigin="anonymous"></script>
